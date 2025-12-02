@@ -1,0 +1,118 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from collections import deque   # Queue
+
+class TemperatureConverter:
+    def __init__(self, value=0):
+        self.__value = value  
+
+    def setValue(self, value):
+        self.__value = value
+
+    def getValue(self):
+        return self.__value
+
+    def to_celsius(self, from_unit):
+        if from_unit == "Celsius":
+            return self.__value
+        elif from_unit == "Fahrenheit":
+            return (self.__value - 32) * 5/9
+        elif from_unit == "Kelvin":
+            return self.__value - 273.15
+
+    def convert(self, from_unit, to_unit):
+        celsius = self.to_celsius(from_unit)
+        if to_unit == "Celsius":
+            return celsius
+        elif to_unit == "Fahrenheit":
+            return (celsius * 9/5) + 32
+        elif to_unit == "Kelvin":
+            return celsius + 273.15
+
+
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Alat Pengukur Suhu ")
+        self.root.geometry("450x420")
+        self.root.resizable(False, False)
+
+        self.converter = TemperatureConverter()
+        self.units = ["Celsius", "Fahrenheit", "Kelvin"]
+
+        self.history_stack = []      # LIFO
+        self.history_queue = deque() # FIFO
+
+        title = tk.Label(root, text="Alat Pengukur Suhu", font=("Arial", 16, "bold"))
+        title.pack(pady=10)
+
+        frame = tk.Frame(root)
+        frame.pack(pady=10)
+
+        tk.Label(frame, text="Masukkan Nilai Suhu:").grid(row=0, column=0, sticky="w")
+        self.entry_value = tk.Entry(frame)
+        self.entry_value.grid(row=0, column=1)
+
+        tk.Label(frame, text="Dari Satuan:").grid(row=1, column=0, sticky="w")
+        self.combo_from = ttk.Combobox(frame, values=self.units, state="readonly")
+        self.combo_from.grid(row=1, column=1)
+        self.combo_from.current(0)
+
+        tk.Label(frame, text="Ke Satuan:").grid(row=2, column=0, sticky="w")
+        self.combo_to = ttk.Combobox(frame, values=self.units, state="readonly")
+        self.combo_to.grid(row=2, column=1)
+        self.combo_to.current(1)
+
+        tk.Button(root, text="Konversi", command=self.do_convert,
+                  bg="#1976D2", fg="white", width=20).pack(pady=10)
+
+        self.label_result = tk.Label(root, text="Hasil akan tampil di sini", font=("Arial", 12))
+        self.label_result.pack(pady=10)
+
+        tk.Button(root, text="Lihat Riwayat ", command=self.show_history).pack(pady=5)
+        tk.Button(root, text="Undo Konversi ", command=self.undo_last).pack(pady=5)
+
+    def do_convert(self):
+        try:
+            value = float(self.entry_value.get())
+        except ValueError:
+            messagebox.showerror("Error", "Masukkan angka yang valid!")
+            return
+
+        from_unit = self.combo_from.get()
+        to_unit = self.combo_to.get()
+
+        self.converter.setValue(value)
+        result = self.converter.convert(from_unit, to_unit)
+        
+        text_history = f"{value} {from_unit} → {result:.2f} {to_unit}"
+        self.history_stack.append(text_history)
+        self.history_queue.append(text_history)
+
+        self.label_result.config(text=f"Hasil: {result:.2f} {to_unit}")
+
+    def show_history(self):
+        if not self.history_queue:
+            messagebox.showinfo("Riwayat", "Riwayat masih kosong.")
+            return
+
+        history_text = "Riwayat Konversi:\n\n"
+
+        for item in self.history_queue:
+            history_text += f"- {item}\n"
+
+        messagebox.showinfo("Riwayat Queue", history_text)
+
+    def undo_last(self):
+        if not self.history_stack:
+            messagebox.showinfo("Undo", "Tidak ada riwayat untuk dihapus.")
+            return
+
+        removed = self.history_stack.pop()
+        messagebox.showinfo("Undo", f"Konversi terakhir dibatalkan:\n{removed}")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
